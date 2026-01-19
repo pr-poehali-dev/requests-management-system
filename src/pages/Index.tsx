@@ -9,8 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
+import Login from './Login';
 
 type UserRole = 'admin' | 'manager' | 'executor';
 
@@ -42,12 +44,26 @@ type AppObject = {
 };
 
 const Index = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentUser] = useState<{ name: string; role: UserRole }>({ 
-    name: 'Иван Петров', 
-    role: 'manager' 
-  });
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: UserRole } | null>(null);
+
+  const handleLogin = (name: string, role: UserRole) => {
+    setCurrentUser({ name, role });
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setActiveSection('dashboard');
+    toast.success('Вы успешно вышли из системы');
+  };
+
+  if (!isAuthenticated || !currentUser) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   const [requests] = useState<Request[]>([
     { id: 'REQ-001', title: 'Установка оборудования', status: 'in_progress', priority: 'high', objectId: 'OBJ-001', createdAt: '2024-01-15', assignedTo: 'Сидоров А.' },
@@ -563,17 +579,34 @@ const Index = () => {
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
-          <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-            <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-medium">
-              {currentUser.name.split(' ').map(n => n[0]).join('')}
-            </div>
-            {!sidebarCollapsed && (
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{currentUser.name}</div>
-                <div className="text-xs text-sidebar-foreground/70 capitalize">{currentUser.role === 'admin' ? 'Администратор' : currentUser.role === 'manager' ? 'Менеджер' : 'Исполнитель'}</div>
-              </div>
-            )}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={`w-full flex items-center gap-3 hover:bg-sidebar-accent rounded-lg p-2 transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}>
+                <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-medium">
+                  {currentUser.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                {!sidebarCollapsed && (
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="font-medium truncate">{currentUser.name}</div>
+                    <div className="text-xs text-sidebar-foreground/70 capitalize">{currentUser.role === 'admin' ? 'Администратор' : currentUser.role === 'manager' ? 'Менеджер' : 'Исполнитель'}</div>
+                  </div>
+                )}
+                {!sidebarCollapsed && <Icon name="ChevronUp" className="h-4 w-4 text-sidebar-foreground/50" />}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Мой аккаунт</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setActiveSection('settings')}>
+                <Icon name="Settings" className="mr-2 h-4 w-4" />
+                Настройки
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                <Icon name="LogOut" className="mr-2 h-4 w-4" />
+                Выйти
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
