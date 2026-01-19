@@ -8,6 +8,7 @@ type DashboardViewProps = {
   requests: Request[];
   tasks: Task[];
   objects: AppObject[];
+  onRequestClick?: (id: string) => void;
 };
 
 const DashboardView = ({ requests, tasks, objects }: DashboardViewProps) => {

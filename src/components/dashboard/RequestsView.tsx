@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,16 +9,40 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-import { toast } from 'sonner';
 import type { Request, AppObject } from '@/types';
 import { getStatusColor, getPriorityColor, getStatusLabel, getPriorityLabel } from '@/types';
 
 type RequestsViewProps = {
   requests: Request[];
   objects: AppObject[];
+  onAddRequest: (request: Omit<Request, 'id' | 'createdAt'>) => void;
+  onUpdateStatus: (id: string, status: Request['status']) => void;
 };
 
-const RequestsView = ({ requests, objects }: RequestsViewProps) => {
+const RequestsView = ({ requests, objects, onAddRequest, onUpdateStatus }: RequestsViewProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newRequestTitle, setNewRequestTitle] = useState('');
+  const [newRequestObject, setNewRequestObject] = useState('');
+  const [newRequestPriority, setNewRequestPriority] = useState<Request['priority']>('medium');
+  const [newRequestDescription, setNewRequestDescription] = useState('');
+
+  const handleSubmit = () => {
+    if (!newRequestTitle || !newRequestObject) return;
+
+    onAddRequest({
+      title: newRequestTitle,
+      status: 'new',
+      priority: newRequestPriority,
+      objectId: newRequestObject,
+      assignedTo: 'Не назначен',
+    });
+
+    setNewRequestTitle('');
+    setNewRequestObject('');
+    setNewRequestPriority('medium');
+    setNewRequestDescription('');
+    setIsDialogOpen(false);
+  };
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -25,7 +50,7 @@ const RequestsView = ({ requests, objects }: RequestsViewProps) => {
           <h2 className="text-3xl font-bold tracking-tight">Заявки</h2>
           <p className="text-muted-foreground">Управление заявками на обслуживание</p>
         </div>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Icon name="Plus" className="mr-2 h-4 w-4" />
@@ -39,11 +64,16 @@ const RequestsView = ({ requests, objects }: RequestsViewProps) => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="request-title">Название заявки</Label>
-                <Input id="request-title" placeholder="Введите название" />
+                <Input 
+                  id="request-title" 
+                  value={newRequestTitle}
+                  onChange={(e) => setNewRequestTitle(e.target.value)}
+                  placeholder="Введите название" 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="request-object">Объект</Label>
-                <Select>
+                <Select value={newRequestObject} onValueChange={setNewRequestObject}>
                   <SelectTrigger id="request-object">
                     <SelectValue placeholder="Выберите объект" />
                   </SelectTrigger>
@@ -56,7 +86,7 @@ const RequestsView = ({ requests, objects }: RequestsViewProps) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="request-priority">Приоритет</Label>
-                <Select>
+                <Select value={newRequestPriority} onValueChange={(val) => setNewRequestPriority(val as Request['priority'])}>
                   <SelectTrigger id="request-priority">
                     <SelectValue placeholder="Выберите приоритет" />
                   </SelectTrigger>
@@ -70,9 +100,15 @@ const RequestsView = ({ requests, objects }: RequestsViewProps) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="request-desc">Описание</Label>
-                <Textarea id="request-desc" placeholder="Опишите задачу" rows={4} />
+                <Textarea 
+                  id="request-desc" 
+                  value={newRequestDescription}
+                  onChange={(e) => setNewRequestDescription(e.target.value)}
+                  placeholder="Опишите задачу" 
+                  rows={4} 
+                />
               </div>
-              <Button className="w-full" onClick={() => toast.success('Заявка создана успешно')}>
+              <Button className="w-full" onClick={handleSubmit}>
                 Создать заявку
               </Button>
             </div>
@@ -123,9 +159,22 @@ const RequestsView = ({ requests, objects }: RequestsViewProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${getStatusColor(request.status)} text-white`}>
-                      {getStatusLabel(request.status)}
-                    </Badge>
+                    <Select 
+                      value={request.status} 
+                      onValueChange={(val) => onUpdateStatus(request.id, val as Request['status'])}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <Badge className={`${getStatusColor(request.status)} text-white border-0`}>
+                          {getStatusLabel(request.status)}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">Новая</SelectItem>
+                        <SelectItem value="in_progress">В работе</SelectItem>
+                        <SelectItem value="completed">Завершена</SelectItem>
+                        <SelectItem value="cancelled">Отменена</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>{request.assignedTo}</TableCell>
                   <TableCell className="font-data">{request.createdAt}</TableCell>
